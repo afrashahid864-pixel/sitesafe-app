@@ -1,18 +1,20 @@
-name: sitesafe_app
-description: Website safety checker
-
-publish_to: 'none'
-
-version: 1.0.0+1
-
-environment:
-  sdk: '>=3.0.0 <4.0.0'
-
-dependencies:
-  flutter:
-    sdk: flutter
-  http: ^1.1.0
-  flutter_inappwebview: ^6.0.0
-
-flutter:
-  uses-material-design: true
+workflows:
+  android-release:
+    name: Android Build
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    environment:
+      flutter: stable
+    scripts:
+      - name: Create Android folder if missing
+        script: |
+          flutter create .
+          flutter pub get
+      - name: Fix build.gradle
+        script: |
+          sed -i '' 's/minifyEnabled true/minifyEnabled false/g' android/app/build.gradle || echo "already false"
+      - name: Build Android APK
+        script: |
+          flutter build apk --release
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
