@@ -22,6 +22,7 @@ workflows:
           dependencies:
             flutter:
               sdk: flutter
+            http: ^1.2.2
           EOF
           flutter pub get
       - name: Build Android APK
