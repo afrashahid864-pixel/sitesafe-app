@@ -5,13 +5,14 @@ workflows:
     instance_type: mac_mini_m1
     environment:
       flutter: stable
-   8  scripts:
-9    - name: Create Android folder if missing  <-- 4 space
-10     script: |
-11       flutter create .
-12       echo "environment:\n  sdk: '>=3.3.0 <4.0.0'" >> pubspec.yaml
-13       flutter pub get
-14    - name: Build Android APK  <-- bilkul line 9 ke barabar
-15     script: |
-16       flutter build apk --release artifacts:
+    scripts:
+      - name: Create Android folder if missing
+        script: |
+          flutter create .
+          echo "environment:\n  sdk: '>=3.3.0 <4.0.0'" >> pubspec.yaml
+          flutter pub get
+      - name: Build Android APK
+        script: |
+          flutter build apk --release
+    artifacts:
       - build/app/outputs/flutter-apk/*.apk
