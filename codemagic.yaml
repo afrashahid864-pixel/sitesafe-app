@@ -9,7 +9,18 @@ workflows:
       - name: Create Android folder if missing
         script: |
           flutter create .
-          echo "environment:\n  sdk: '>=3.3.0 <4.0.0'" >> pubspec.yaml
+          cat > pubspec.yaml << EOF
+          name: sitesafe_app
+          description: A new Flutter project.
+          publish_to: 'none'
+
+          environment:
+            sdk: '>=3.3.0 <4.0.0'
+
+          dependencies:
+            flutter:
+              sdk: flutter
+          EOF
           flutter pub get
       - name: Build Android APK
         script: |
