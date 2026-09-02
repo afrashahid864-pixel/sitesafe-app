@@ -1,59 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-void main() {
-  runApp(const SiteSafeApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await MobileAds.instance.initialize(); // AdMob start
+  runApp(MyApp());
 }
 
-class SiteSafeApp extends StatelessWidget {
-  const SiteSafeApp({super.key});
-
+class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'SiteSafe',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: const HomePage(),
+      home: HomePage(),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
-
   @override
-  State<HomePage> createState() => _HomePageState();
+  _HomePageState createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  final TextEditingController _urlController = TextEditingController();
-  String _result = "Enter a website URL to check";
+  final TextEditingController _controller = TextEditingController();
+  String _result = '';
+  bool _loading = false;
+  
+  // AdMob
+  late BannerAd _bannerAd;
+  bool _isAdLoaded = false;
 
-  Future<void> _checkWebsite() async {
-    String url = _urlController.text;
-    if (!url.startsWith('http')) {
-      url = 'https://' + url;
-    }
-    
-    setState(() {
-      _result = "Checking...";
-    });
+  @override
+  void initState() {
+    super.initState();
+    _bannerAd = BannerAd(
+      adUnitId: 'ca-app-pub-3940256099942544/6300978111', // TEST ID
+      size: AdSize.banner,
+      request: AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (_) => setState(() => _isAdLoaded = true),
+        onAdFailedToLoad: (ad, err) => ad.dispose(),
+      ),
+    )..load();
+  }
 
+  Future<void> checkSite() async {
+    setState(() { _loading = true; _result = ''; });
     try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        setState(() {
-          _result = "✅ Safe: Website is online!\nStatus Code: ${response.statusCode}";
-        });
-      } else {
-        setState(() {
-          _result = "⚠️ Warning: Status Code: ${response.statusCode}";
-        });
-      }
+      final url = Uri.parse(_controller.text);
+      final response = await http.get(url).timeout(Duration(seconds: 10));
+      setState(() {
+        _result = 'Status: ${response.statusCode}\nSite is UP ✅';
+        _loading = false;
+      });
     } catch (e) {
       setState(() {
-        _result = "❌ Error: Could not reach website";
+        _result = 'Error: Site is DOWN ❌\n$e';
+        _loading = false;
       });
     }
   }
@@ -61,29 +68,42 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('SiteSafe - Website Checker')),
+      appBar: AppBar(title: Text('SiteSafe - Website Checker')),
       body: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: EdgeInsets.all(16),
         child: Column(
           children: [
             TextField(
-              controller: _urlController,
-              decoration: const InputDecoration(
+              controller: _controller,
+              decoration: InputDecoration(
                 labelText: 'Enter Website URL',
-                hintText: 'google.com',
+                hintText: 'https://google.com',
                 border: OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 10),
             ElevatedButton(
-              onPressed: _checkWebsite,
-              child: const Text('Check Safety'),
+              onPressed: _loading ? null : checkSite,
+              child: _loading ? CircularProgressIndicator() : Text('Check Site'),
             ),
-            const SizedBox(height: 20),
-            Text(_result, style: const TextStyle(fontSize: 16)),
+            SizedBox(height: 20),
+            Text(_result, style: TextStyle(fontSize: 16)),
+            Spacer(),
+            if (_isAdLoaded)
+              SizedBox(
+                width: _bannerAd.size.width.toDouble(),
+                height: _bannerAd.size.height.toDouble(),
+                child: AdWidget(ad: _bannerAd),
+              ),
           ],
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _bannerAd.dispose();
+    super.dispose();
   }
 }
